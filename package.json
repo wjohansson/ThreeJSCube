@@ -1,6 +1,9 @@
 {
   "dependencies": {
-    "dat.gui": "^0.7.7",
+    "dat.gui": "^0.7.9",
     "three": "^0.149.0"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.2.4"
   }
 }
