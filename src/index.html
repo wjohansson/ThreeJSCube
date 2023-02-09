@@ -14,52 +14,54 @@
 </head>
 
 <body>
-	<div class="w-1/6 flex flex-col gap-12 m-4 absolute z-0 text-white">
-		<form class="flex flex-col" id="size-options">
-			<label for="scale">Scale</label>
-			<input type="range" min="0.1" max="2" step="0.01" class="w-full" id="scale">
-			<label for="x-size">X size</label>
-			<input type="range" min="0.1" max="2" step="0.01" class="w-full" id="x-size">
-			<label for="y-size">Y size</label>
-			<input type="range" min="0.1" max="2" step="0.01" class="w-full" id="y-size">
-			<label for="z-size">Z size</label>
-			<input type="range" min="0.1" max="2" step="0.01" class="w-full" id="z-size">
-		</form>
-		<form class="flex flex-col" id="rotation-options">
-			<label for="x-size">X rotation</label>
-			<input type="range" min="0" max="1" step="0.01" value="0" class="w-full" id="x-rotation">
-			<label for="y-size">Y rotation</label>
-			<input type="range" min="0" max="1" step="0.01" value="0" class="w-full" id="y-rotation">
-			<label for="z-size">Z rotation</label>
-			<input type="range" min="0" max="1" step="0.01" value="0" class="w-full" id="z-rotation">
-		</form>
-	</div>
-	<div class="w-1/6 flex flex-col gap-12 m-4  absolute right-0 z-0 text-white">
-		<form class="flex flex-col" id="look-options">
-			<label for="texture">Texture</label>
-			<input type="checkbox" class="w-full" id="texture">
-			<label for="color">Color</label>
-			<input type="color" class="w-full" id="color">
-			<label for="metalness">Metalness</label>
-			<input type="range" min="0" max="1" step="0.01" value="0" class="w-full" id="metalness">
-			<label for="opacity">Opacity</label>
-			<input type="range" min="0" max="1" step="0.01" value="1" class="w-full" id="opacity">
-			<label for="wireframe">Wireframe</label>
-			<input type="checkbox" class="w-full" id="wireframe">
-		</form>
-		<form class="flex flex-col" id="movement-options">
-			<label for="auto-rotate">Auto rotate</label>
-			<input type="checkbox" class="w-full" id="auto-rotate">
-			<label for="speed">Speed</label>
-			<input type="range" min="0" max="0.1" step="0.001" value="0.01" class="w-full" id="speed">
-			<label for="bounce">Bounce</label>
-			<input type="checkbox" class="w-full" id="bounce">
-		</form>
+	<div  id="controls">
+		<div class="w-1/6 flex flex-col gap-12 m-4 absolute z-0 text-white">
+			<form class="flex flex-col" id="size-options">
+				<label for="scale">Scale</label>
+				<input type="range" min="0.1" max="2" step="0.01" class="w-full" id="scale">
+				<label for="x-size">X size</label>
+				<input type="range" min="0.1" max="2" step="0.01" class="w-full" id="x-size">
+				<label for="y-size">Y size</label>
+				<input type="range" min="0.1" max="2" step="0.01" class="w-full" id="y-size">
+				<label for="z-size">Z size</label>
+				<input type="range" min="0.1" max="2" step="0.01" class="w-full" id="z-size">
+			</form>
+			<form class="flex flex-col" id="rotation-options">
+				<label for="x-size">X rotation</label>
+				<input type="range" min="0" max="1" step="0.01" value="0" class="w-full" id="x-rotation">
+				<label for="y-size">Y rotation</label>
+				<input type="range" min="0" max="1" step="0.01" value="0" class="w-full" id="y-rotation">
+				<label for="z-size">Z rotation</label>
+				<input type="range" min="0" max="1" step="0.01" value="0" class="w-full" id="z-rotation">
+			</form>
+		</div>
+		<div class="w-1/6 flex flex-col gap-12 m-4  absolute right-0 z-0 text-white">
+			<form class="flex flex-col" id="look-options">
+				<label for="texture">Texture</label>
+				<input type="checkbox" class="w-full" id="texture">
+				<label for="color">Color</label>
+				<input type="color" class="w-full" id="color">
+				<label for="metalness">Metalness</label>
+				<input type="range" min="0" max="1" step="0.01" value="0" class="w-full" id="metalness">
+				<label for="wireframe">Wireframe</label>
+				<input type="checkbox" class="w-full" id="wireframe">
+			</form>
+			<form class="flex flex-col" id="movement-options">
+				<label for="auto-rotate">Auto rotate</label>
+				<input type="checkbox" class="w-full" id="auto-rotate">
+				<label for="speed">Speed</label>
+				<input type="range" min="0" max="0.1" step="0.001" value="0.01" class="w-full" id="speed">
+				<label for="bounce">Bounce</label>
+				<input type="checkbox" class="w-full" id="bounce">
+			</form>
+		</div>
 	</div>
 
 	<div class="bg-none absolute bottom-0 my-4 w-full">
 		<p class="text-red-600 absolute bottom-14 w-[18%] left-[41%] text-center" id="add-cube-error"></p>
-		<button class="bg-yellow-400 p-2 rounded-md absolute bottom-0 left-[45%] w-[10%] hover:bg-yellow-500 active:bg-yellow-600" id="new-cube">Add cube</p>
+		<button
+			class="bg-yellow-400 p-2 rounded-md absolute bottom-0 left-[45%] w-[10%] hover:bg-yellow-500 active:bg-yellow-600"
+			id="new-cube">Add cube</p>
 	</div>
 
 	<script type="importmap">
