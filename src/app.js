@@ -1,6 +1,5 @@
 import * as THREE from '../node_modules/three/build/three.module.js';
 import { OrbitControls } from 'orbitControls';
-// import { GUI } from '../node_modules/dat.gui/build/dat.gui.module.js';
 
 const controls = document.getElementById('controls');
 const sizeOptions = document.getElementById('size-options');
@@ -19,32 +18,16 @@ const color = document.getElementById('color');
 const metalness = document.getElementById('metalness');
 const autoRotation = document.getElementById('auto-rotate');
 const speed = document.getElementById('speed');
-const bounce = document.getElementById('bounce');
 const wireframe = document.getElementById('wireframe');
 const newCube = document.getElementById('new-cube');
 const addCubeError = document.getElementById('add-cube-error');
 
-controls.style.visibility = 'hidden';
-scale.value = 1;
-xSize.value = 1;
-ySize.value = 1;
-zSize.value = 1;
-xRotation.value = 0;
-yRotation.value = 0;
-zRotation.value = 0;
-texture.checked = true;
-color.value = '#ffffff';
-metalness.value = 0;
-autoRotation.checked = false;
-speed.value = 0.01;
-bounce.checked = true;
-wireframe.checked = false;
-
 const boxTexture = new THREE.TextureLoader().load('textures/2k_jupiter.jpg');
-// const sphereTexture = new THREE.TextureLoader().load('textures/2k_saturn.jpg');
-// const ringTexture = new THREE.TextureLoader().load('textures/2k_saturn_ring_alpha.png');
+
+const clock = new THREE.Clock();
 
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x777777);
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
 
 const renderer = new THREE.WebGLRenderer();
@@ -54,6 +37,41 @@ document.body.appendChild(renderer.domElement);
 renderer.shadowMap.enabled = true;
 
 const orbit = new OrbitControls(camera, renderer.domElement);
+
+/* Physics */
+
+
+// var ammoClone;
+// var tempTransformation;
+// var physicsWorld;
+// function startAmmo() {
+//     Ammo().then( (Ammo) => {
+//     Ammo = Ammo;
+//     ammoClone = Ammo;
+//     console.log(Ammo);
+// });
+// }
+
+// function createAmmo(Ammo = ammoClone) {
+//     tempTransformation = Ammo.btTransform();
+//     setupPhysicsWorld(Ammo); 
+// }
+
+// function setupPhysicsWorld(Ammo = ammoClone) {
+//     let collisionConfiguration = new Ammo.btDefaulCollisionConfiguration();
+//     let dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
+//     let overlappingPairCache = new Ammo.btDbvtBroadphase();
+//     let solver = new Ammo.btSequentialImpulseConstraintSolver();
+
+//     physicsWorld = new Ammo.btDiscreteDynamicWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
+//     physicsWorld.setGravity(0, -9.8, 0);
+//     console.log('physics world init')
+// }
+
+// startAmmo();
+// createAmmo();
+
+/* End of physics */
 
 // const ringGeometry = new THREE.TorusGeometry(2);
 // const ringMaterial = new THREE.MeshStandardMaterial( {  map: ringTexture } );
@@ -70,8 +88,8 @@ const orbit = new OrbitControls(camera, renderer.domElement);
 // scene.add(sphere);
 
 var cube;
-var cubeSize = 3;
-var gap = 6;
+var cubeSize = 2;
+var gap = 4;
 var cubeGeometry;
 var cubeMaterial;
 var cubes = new Array();
@@ -94,7 +112,7 @@ function addCube() {
     // var yPosition = (6 * Math.ceil((cubes.length / 4))) * ((cubes.length % 2) - 1) * Math.pow(-1, Math.ceil(cubes.length / 2));
     var xPosition = cubesPosition[cubes.length][0];
     var zPosition = cubesPosition[cubes.length][1];
-    cube.position.set(xPosition, 2.5, zPosition);
+    cube.position.set(xPosition, cubeSize / 2, zPosition);
     cube.castShadow = true;
     scene.add(cube);
     cubes.push(cube);
@@ -104,7 +122,7 @@ addCube();
 
 const group = new THREE.Group();
 
-const planeGeometry = new THREE.PlaneGeometry(30, 30);
+const planeGeometry = new THREE.PlaneGeometry(100, 100);
 const planeMaterial = new THREE.MeshStandardMaterial({
     side: THREE.DoubleSide
 });
@@ -113,7 +131,7 @@ plane.rotation.x = -0.5 * Math.PI;
 plane.receiveShadow = true;
 group.add(plane);
 
-const gridHelper = new THREE.GridHelper(30, 10);
+const gridHelper = new THREE.GridHelper(100, 50);
 group.add(gridHelper);
 
 const axesHelper = new THREE.AxesHelper(3);
@@ -122,7 +140,7 @@ group.add(axesHelper);
 camera.position.set(20, 20, 20);
 orbit.update();
 
-const ambientLight = new THREE.AmbientLight(0x333333);
+const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.4);
 group.add(ambientLight);
 
 const directionalLight = new THREE.DirectionalLight(0xc0c0c0, 0.8);
@@ -139,28 +157,13 @@ group.add(dLightHelper);
 
 scene.add(group);
 
-// const dLightShadowHelper = new THREE.CameraHelper(directionalLight.shadow.camera);
-// scene.add(dLightShadowHelper);
-
-// const gui = new GUI();
-
 const options = {
     cubeColor: '#ffffff',
     wireframe: false,
     speed: speed.value,
-    bounce: bounce.checked,
     rotate: autoRotation.checked
 }
 
-// gui.addColor(options, 'cubeColor').onChange(function(e){
-//     cube.material.color.set(e);
-// });
-
-// gui.add(options, 'wireframe').onChange(function(e){
-//     cube.material.wireframe = e;
-// });
-
-// gui.add(options, 'speed', 0, 0.1)
 let step = 0;
 function activateCube(cube) {
     scale.value = cube.scale;
@@ -175,7 +178,6 @@ function activateCube(cube) {
     metalness.value = cube.material.metalness;
     autoRotation.checked = false; // måste fixa individuell speed först
     speed.value = 0.01; // måste fixa individuell speed först
-    bounce.checked = true; // måste fixa individuell bounce först
     wireframe.checked = cube.material.wireframe;
 }
 
@@ -193,6 +195,8 @@ function controlLookCube() {
     activeCube.material.color.setHex('0x' + color.value.slice(1));
     activeCube.material.metalness = metalness.value;
     activeCube.material.wireframe = wireframe.checked ? true : false;
+    activeCube.material.map = boxTexture ? null : boxTexture;
+    activeCube.material.needsUpdate = true;
 }
 
 sizeOptions.addEventListener('input', controlScaleCube);
@@ -228,7 +232,6 @@ function hoverClick(e) {
     const intersect = rayCaster.intersectObjects(cubes);
 
     if (intersect.length > 0 && intersect[0].object.id == activeCube.id) {
-        console.log('a');
         controls.style.visibility = 'hidden';
         intersect[0].object.material.opacity = 1;
         activeCube = new THREE.Mesh(cubeGeometry, cubeMaterial);
@@ -237,7 +240,6 @@ function hoverClick(e) {
 
     for (var i = 0; i < cubes.length; i++) {
         if (intersect.length > 0 && cubes[i].id == intersect[0].object.id) {
-            console.log('b');
             cubes.forEach(cube => cube.material.opacity = 1);
             intersect[0].object.material.opacity = 0.70;
             activeCube = intersect[0].object;
@@ -247,7 +249,7 @@ function hoverClick(e) {
     }
 }
 
-function resize () {
+function resize() {
     var WIDTH = window.innerWidth,
         HEIGHT = window.innerHeight;
     renderer.setSize(WIDTH, HEIGHT);
@@ -259,44 +261,52 @@ window.addEventListener('mousemove', hover);
 window.addEventListener('click', hoverClick);
 window.addEventListener('resize', resize);
 
-function rotateCube() {
-    activeCube.rotation.y += parseFloat(speed.value);
-    activeCube.rotation.z += parseFloat(speed.value);
-    activeCube.rotation.x += parseFloat(speed.value);
+function rotateCube(cube) {
+    cube.rotation.y += parseFloat(speed.value);
+    cube.rotation.z += parseFloat(speed.value);
+    cube.rotation.x += parseFloat(speed.value);
 }
 
-function bounceCube() {
-    activeCube.position.y = 5 * Math.abs(Math.sin(step)) + 1.5;
-}
+// function moveCube() {
+//     document.onkeydown = function (e) {
+//         if (e.key == 'a') {
+//             activeCube.position.x -= 0.1;
+//         }
+//         else if (e.key == 'd') {
+//             activeCube.position.x += 0.1;
+//         }
+//         else if (e.key == 's') {
+//             activeCube.position.z += 0.1;
+//         }
+//         else if (e.key == 'w') {
+//             activeCube.position.z -= 0.1;
+//         }
+//         else if (e.key == ' ') {
+//             do {
+//                 step += 0.05;
+//                 activeCube.position.y = 10 * Math.abs(Math.sin(step)) + 1;
+//             } while (activeCube.position.y <2)
+//         }
 
-function addTexture() {
-    activeCube.material.map = boxTexture;
-    activeCube.material.needsUpdate = true;
-}
-
-function removeTexture() {
-    activeCube.material.map = null;
-    activeCube.material.needsUpdate = true;
-}
+//       };
+// }
 
 function animate() {
+    let deltaTime = clock.getDelta();
     requestAnimationFrame(animate);
 
-    if (texture.checked) {
-        cubes.forEach(addTexture);
-    }
-    else {
-        cubes.forEach(removeTexture);
-    }
+
 
     if (autoRotation.checked) {
         cubes.forEach(rotateCube);
     }
 
-    if (bounce.checked) {
-        step += parseFloat(speed.value);
-        cubes.forEach(bounceCube)
-    }
+    // if (bounce.checked) {
+    //     step += parseFloat(speed.value);
+    //     bounceCube(activeCube);
+    // }
+
+    // moveCube();
 
     renderer.render(scene, camera);
 };
