@@ -9,7 +9,6 @@ var cubeMaterial;
 var cubes = new Array();
 var cubesPosition = [[0, 0], [0, gap], [gap, gap], [gap, 0], [gap, -1 * gap], [0, -1 * gap], [-1 * gap, -1 * gap], [-1 * gap, 0], [-1 * gap, gap], [-1 * gap, 2 * gap], [0, 2 * gap], [gap, 2 * gap], [2 * gap, 2 * gap], [2 * gap, gap], [2 * gap, 0], [2 * gap, -1 * gap], [2 * gap, -2 * gap], [gap, -2 * gap], [0, -2 * gap], [-1 * gap, -2 * gap], [-2 * gap, -2 * gap], [-2 * gap, -1 * gap], [-2 * gap, 0], [-2 * gap, gap], [-2 * gap, 2 * gap]];
 var activeCube = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), new THREE.MeshStandardMaterial());
-let step = 0;
 const mousePosition = new THREE.Vector2();
 const rayCaster = new THREE.Raycaster();
 let camera, scene, renderer, boxTexture, clock, orbit;
@@ -195,7 +194,7 @@ function controlLookCube() {
     activeCube.material.color.setHex('0x' + color.value.slice(1));
     activeCube.material.metalness = metalness.value;
     activeCube.material.wireframe = wireframe.checked ? true : false;
-    activeCube.material.map = boxTexture ? null : boxTexture;
+    activeCube.material.map = texture.checked ? boxTexture : null;
     activeCube.material.needsUpdate = true;
 }
 
