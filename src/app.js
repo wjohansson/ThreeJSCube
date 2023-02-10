@@ -1,11 +1,23 @@
 import * as THREE from '../node_modules/three/build/three.module.js';
 import { OrbitControls } from 'orbitControls';
 
+var cube;
+var cubeSize = 2;
+var gap = 4;
+var cubeGeometry;
+var cubeMaterial;
+var cubes = new Array();
+var cubesPosition = [[0, 0], [0, gap], [gap, gap], [gap, 0], [gap, -1 * gap], [0, -1 * gap], [-1 * gap, -1 * gap], [-1 * gap, 0], [-1 * gap, gap], [-1 * gap, 2 * gap], [0, 2 * gap], [gap, 2 * gap], [2 * gap, 2 * gap], [2 * gap, gap], [2 * gap, 0], [2 * gap, -1 * gap], [2 * gap, -2 * gap], [gap, -2 * gap], [0, -2 * gap], [-1 * gap, -2 * gap], [-2 * gap, -2 * gap], [-2 * gap, -1 * gap], [-2 * gap, 0], [-2 * gap, gap], [-2 * gap, 2 * gap]];
+var activeCube = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), new THREE.MeshStandardMaterial());
+let step = 0;
+const mousePosition = new THREE.Vector2();
+const rayCaster = new THREE.Raycaster();
+let camera, scene, renderer, boxTexture, clock, orbit;
+
 const controls = document.getElementById('controls');
 const sizeOptions = document.getElementById('size-options');
 const rotationOptions = document.getElementById('rotation-options');
 const lookOptions = document.getElementById('look-options');
-const movementOptions = document.getElementById('movement-options');
 const scale = document.getElementById('scale');
 const xSize = document.getElementById('x-size');
 const ySize = document.getElementById('y-size');
@@ -22,24 +34,68 @@ const wireframe = document.getElementById('wireframe');
 const newCube = document.getElementById('new-cube');
 const addCubeError = document.getElementById('add-cube-error');
 
-const boxTexture = new THREE.TextureLoader().load('textures/2k_jupiter.jpg');
+function init() {
+    boxTexture = new THREE.TextureLoader().load('textures/2k_jupiter.jpg');
 
-const clock = new THREE.Clock();
+    clock = new THREE.Clock();
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x777777);
-const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x777777);
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
 
-renderer.shadowMap.enabled = true;
+    renderer.shadowMap.enabled = true;
 
-const orbit = new OrbitControls(camera, renderer.domElement);
+    orbit = new OrbitControls(camera, renderer.domElement);
+
+    addCube();
+
+    const group = new THREE.Group();
+
+    const planeGeometry = new THREE.PlaneGeometry(100, 100);
+    const planeMaterial = new THREE.MeshStandardMaterial({
+        side: THREE.DoubleSide
+    });
+    const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+    plane.rotation.x = -0.5 * Math.PI;
+    plane.receiveShadow = true;
+    group.add(plane);
+
+    const gridHelper = new THREE.GridHelper(100, 50);
+    group.add(gridHelper);
+
+    const axesHelper = new THREE.AxesHelper(3);
+    group.add(axesHelper);
+
+    camera.position.set(20, 20, 20);
+    orbit.update();
+
+    const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.4);
+    group.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xc0c0c0, 0.8);
+    directionalLight.position.set(30, 50, -15);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.camera.bottom = -20;
+    directionalLight.shadow.camera.top = 20;
+    directionalLight.shadow.camera.right = 20;
+    directionalLight.shadow.camera.left = -20;
+    group.add(directionalLight);
+
+    const dLightHelper = new THREE.DirectionalLightHelper(directionalLight, 5);
+    group.add(dLightHelper);
+
+    scene.add(group);
+
+    animate();
+
+}
+init();
 
 /* Physics */
-
 
 // var ammoClone;
 // var tempTransformation;
@@ -87,15 +143,6 @@ const orbit = new OrbitControls(camera, renderer.domElement);
 // sphere.castShadow = true;
 // scene.add(sphere);
 
-var cube;
-var cubeSize = 2;
-var gap = 4;
-var cubeGeometry;
-var cubeMaterial;
-var cubes = new Array();
-var cubesPosition = [[0, 0], [0, gap], [gap, gap], [gap, 0], [gap, -1 * gap], [0, -1 * gap], [-1 * gap, -1 * gap], [-1 * gap, 0], [-1 * gap, gap], [-1 * gap, 2 * gap], [0, 2 * gap], [gap, 2 * gap], [2 * gap, 2 * gap], [2 * gap, gap], [2 * gap, 0], [2 * gap, -1 * gap], [2 * gap, -2 * gap], [gap, -2 * gap], [0, -2 * gap], [-1 * gap, -2 * gap], [-2 * gap, -2 * gap], [-2 * gap, -1 * gap], [-2 * gap, 0], [-2 * gap, gap], [-2 * gap, 2 * gap]];
-var activeCube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-
 function addCube() {
     if (cubes.length >= 25) {
         addCubeError.innerHTML = "Can not add any more cubes";
@@ -118,53 +165,6 @@ function addCube() {
     cubes.push(cube);
 }
 
-addCube();
-
-const group = new THREE.Group();
-
-const planeGeometry = new THREE.PlaneGeometry(100, 100);
-const planeMaterial = new THREE.MeshStandardMaterial({
-    side: THREE.DoubleSide
-});
-const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-plane.rotation.x = -0.5 * Math.PI;
-plane.receiveShadow = true;
-group.add(plane);
-
-const gridHelper = new THREE.GridHelper(100, 50);
-group.add(gridHelper);
-
-const axesHelper = new THREE.AxesHelper(3);
-group.add(axesHelper);
-
-camera.position.set(20, 20, 20);
-orbit.update();
-
-const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.4);
-group.add(ambientLight);
-
-const directionalLight = new THREE.DirectionalLight(0xc0c0c0, 0.8);
-directionalLight.position.set(30, 50, -15);
-directionalLight.castShadow = true;
-directionalLight.shadow.camera.bottom = -20;
-directionalLight.shadow.camera.top = 20;
-directionalLight.shadow.camera.right = 20;
-directionalLight.shadow.camera.left = -20;
-group.add(directionalLight);
-
-const dLightHelper = new THREE.DirectionalLightHelper(directionalLight, 5);
-group.add(dLightHelper);
-
-scene.add(group);
-
-const options = {
-    cubeColor: '#ffffff',
-    wireframe: false,
-    speed: speed.value,
-    rotate: autoRotation.checked
-}
-
-let step = 0;
 function activateCube(cube) {
     scale.value = cube.scale;
     xSize.value = cube.scale.x;
@@ -204,8 +204,7 @@ rotationOptions.addEventListener('input', controlRotateCube);
 lookOptions.addEventListener('input', controlLookCube);
 newCube.addEventListener('click', addCube);
 
-const mousePosition = new THREE.Vector2();
-const rayCaster = new THREE.Raycaster();
+
 
 function hover(e) {
     mousePosition.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -310,5 +309,3 @@ function animate() {
 
     renderer.render(scene, camera);
 };
-
-animate();
