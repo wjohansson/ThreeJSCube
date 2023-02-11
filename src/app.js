@@ -1,5 +1,6 @@
 import * as THREE from '../node_modules/three/build/three.module.js';
-import { OrbitControls } from 'orbitControls';
+import { OrbitControls } from '../node_modules/three/examples/jsm/controls/OrbitControls.js';
+import * as CANNON from '../node_modules/cannon-es/dist/cannon-es.js';
 
 var cube;
 var cubeSize = 2;
@@ -12,6 +13,20 @@ var activeCube = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), new THREE.Mes
 const mousePosition = new THREE.Vector2();
 const rayCaster = new THREE.Raycaster();
 let camera, scene, renderer, boxTexture, clock, orbit;
+var moveLeft = false;
+var moveRight = false;
+var moveForward = false;
+var moveBack = false;
+let keysPressed = {
+    a: false,
+    d: false,
+    s: false,
+    w: false,
+    space: false
+};
+
+var testCube;
+
 
 const controls = document.getElementById('controls');
 const sizeOptions = document.getElementById('size-options');
@@ -33,7 +48,7 @@ const wireframe = document.getElementById('wireframe');
 const newCube = document.getElementById('new-cube');
 const addCubeError = document.getElementById('add-cube-error');
 
-function init() {
+function initRenderWorld() {
     boxTexture = new THREE.TextureLoader().load('textures/2k_jupiter.jpg');
 
     clock = new THREE.Clock();
@@ -49,6 +64,8 @@ function init() {
     renderer.shadowMap.enabled = true;
 
     orbit = new OrbitControls(camera, renderer.domElement);
+    orbit.enableDamping = true;
+    orbit.dampingFactor = 0.1;
 
     addCube();
 
@@ -78,10 +95,12 @@ function init() {
     const directionalLight = new THREE.DirectionalLight(0xc0c0c0, 0.8);
     directionalLight.position.set(30, 50, -15);
     directionalLight.castShadow = true;
-    directionalLight.shadow.camera.bottom = -20;
-    directionalLight.shadow.camera.top = 20;
-    directionalLight.shadow.camera.right = 20;
-    directionalLight.shadow.camera.left = -20;
+    directionalLight.shadow.camera.bottom = -100;
+    directionalLight.shadow.camera.top = 100;
+    directionalLight.shadow.camera.right = 100;
+    directionalLight.shadow.camera.left = -100;
+    directionalLight.shadow.mapSize.width = 10000;
+    directionalLight.shadow.mapSize.height = 10000;
     group.add(directionalLight);
 
     const dLightHelper = new THREE.DirectionalLightHelper(directionalLight, 5);
@@ -89,58 +108,55 @@ function init() {
 
     scene.add(group);
 
+    const testBoxGeometry = new THREE.BoxGeometry(dimension, dimension, dimension)
+
+    const testBoxMaterial = new THREE.MeshStandardMaterial({
+        transparent: true,
+        map: boxTexture
+    });
+    testCube = new THREE.Mesh(testBoxGeometry, testBoxMaterial);
+    testCube.castShadow = true;
+    scene.add(testCube);
     animate();
 
 }
-init();
+
+initPhysicsWorld();
+
+initRenderWorld();
 
 /* Physics */
 
-// var ammoClone;
-// var tempTransformation;
-// var physicsWorld;
-// function startAmmo() {
-//     Ammo().then( (Ammo) => {
-//     Ammo = Ammo;
-//     ammoClone = Ammo;
-//     console.log(Ammo);
-// });
-// }
+var physicsWorld, groundBody, dimension, boxBody;
 
-// function createAmmo(Ammo = ammoClone) {
-//     tempTransformation = Ammo.btTransform();
-//     setupPhysicsWorld(Ammo); 
-// }
+function initPhysicsWorld() {
+    physicsWorld = new CANNON.World({
+        gravity: new CANNON.Vec3(0, -9.82, 0),
+    });
 
-// function setupPhysicsWorld(Ammo = ammoClone) {
-//     let collisionConfiguration = new Ammo.btDefaulCollisionConfiguration();
-//     let dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
-//     let overlappingPairCache = new Ammo.btDbvtBroadphase();
-//     let solver = new Ammo.btSequentialImpulseConstraintSolver();
+    groundBody = new CANNON.Body({
+        type: CANNON.Body.STATIC,
+        shape: new CANNON.Plane(),
+    });
 
-//     physicsWorld = new Ammo.btDiscreteDynamicWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
-//     physicsWorld.setGravity(0, -9.8, 0);
-//     console.log('physics world init')
-// }
+    groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+    physicsWorld.addBody(groundBody);
 
-// startAmmo();
-// createAmmo();
+    dimension = 2;
+    const halfExtents = new CANNON.Vec3(dimension / 2, dimension / 2, dimension / 2);
+    const boxShape = new CANNON.Box(halfExtents);
+    boxBody = new CANNON.Body({
+        mass: 5,
+        shape: boxShape
+    });
+    boxBody.position.set(0, 7, 0);
+    physicsWorld.addBody(boxBody);
 
-/* End of physics */
+    // cannonDebugger = new CANNONDEBUGGER(scene, physicsWorld, {
+    //     color: 0xFF0000
+    // });
+}
 
-// const ringGeometry = new THREE.TorusGeometry(2);
-// const ringMaterial = new THREE.MeshStandardMaterial( {  map: ringTexture } );
-// const ring = new THREE.Mesh( ringGeometry, ringMaterial );
-// ring.DoubleSide;
-// ring.position.set(0, 3, 0)
-// scene.add( ring );
-
-// const sphereGeometry = new THREE.SphereGeometry(5, 50, 50);
-// const sphereMaterial = new THREE.MeshStandardMaterial({ map: sphereTexture});
-// const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-// sphere.position.set(8, 5, 0);
-// sphere.castShadow = true;
-// scene.add(sphere);
 
 function addCube() {
     if (cubes.length >= 25) {
@@ -203,8 +219,6 @@ rotationOptions.addEventListener('input', controlRotateCube);
 lookOptions.addEventListener('input', controlLookCube);
 newCube.addEventListener('click', addCube);
 
-
-
 function hover(e) {
     mousePosition.x = (e.clientX / window.innerWidth) * 2 - 1;
     mousePosition.y = - (e.clientY / window.innerHeight) * 2 + 1;
@@ -265,46 +279,69 @@ function rotateCube(cube) {
     cube.rotation.x += parseFloat(speed.value);
 }
 
-// function moveCube() {
-//     document.onkeydown = function (e) {
-//         if (e.key == 'a') {
-//             activeCube.position.x -= 0.1;
-//         }
-//         else if (e.key == 'd') {
-//             activeCube.position.x += 0.1;
-//         }
-//         else if (e.key == 's') {
-//             activeCube.position.z += 0.1;
-//         }
-//         else if (e.key == 'w') {
-//             activeCube.position.z -= 0.1;
-//         }
-//         else if (e.key == ' ') {
-//             do {
-//                 step += 0.05;
-//                 activeCube.position.y = 10 * Math.abs(Math.sin(step)) + 1;
-//             } while (activeCube.position.y <2)
-//         }
+window.addEventListener('keydown', moveCube);
+window.addEventListener('keyup', stopCube);
 
-//       };
-// }
+function moveCube(e) {
+    keysPressed[e.key] = true;
+    moveLeft = keysPressed.a;
+    moveRight = keysPressed.d;
+    moveForward = keysPressed.w;
+    moveBack = keysPressed.s;
+
+    // else if (e.key == ' ') {
+    //     do {
+    //         step += 0.05;
+    //         activeCube.position.y = 10 * Math.abs(Math.sin(step)) + 1;
+    //     } while (activeCube.position.y < 2)
+    // }
+};
+
+function stopCube(e) {
+    keysPressed[e.key] = false;
+    moveLeft = keysPressed.a;
+    moveRight = keysPressed.d;
+    moveForward = keysPressed.w;
+    moveBack = keysPressed.s;
+
+    // else if (e.key == ' ') {
+    //     do {
+    //         step += 0.05;
+    //         activeCube.position.y = 10 * Math.abs(Math.sin(step)) + 1;
+    //     } while (activeCube.position.y < 2)
+    // }
+};
 
 function animate() {
     let deltaTime = clock.getDelta();
+    physicsWorld.fixedStep();
     requestAnimationFrame(animate);
 
+    if (moveLeft) {
+        activeCube.position.x -= 0.1;
+    }
 
+    if (moveRight) {
+        activeCube.position.x += 0.1;
+    }
+
+    if (moveForward) {
+        activeCube.position.z -= 0.1;
+    }
+
+    if (moveBack) {
+        activeCube.position.z += 0.1;
+    }
 
     if (autoRotation.checked) {
         cubes.forEach(rotateCube);
     }
 
-    // if (bounce.checked) {
-    //     step += parseFloat(speed.value);
-    //     bounceCube(activeCube);
-    // }
+    orbit.update();
+    // cannonDebugger.update();
+    testCube.position.copy(boxBody.position);
+    testCube.quaternion.copy(boxBody.quaternion);
 
-    // moveCube();
 
     renderer.render(scene, camera);
 };
