@@ -2,6 +2,13 @@ import * as THREE from '../node_modules/three/build/three.module.js';
 import { OrbitControls } from '../node_modules/three/examples/jsm/controls/OrbitControls.js';
 import * as CANNON from '../node_modules/cannon-es/dist/cannon-es.js';
 
+// Inte haft tid att fixa detta:
+// Kuber ska inte små studsa vid kollision med marken efter ett hopp
+// Går inte att kombinera vissa movement knappar. Tar inte alla inputs då
+// Inte ens kollat på möjlighet att fixa omskalning genom visuella pilar istället för html inputs
+// Hopp funktionen är inte 100% pålitlig, kan råka bli double jump om man har "otur"
+// Kuber "åker in" i varandra lite vid collision, speciellt märkbart vid högre hastigheter på kuben
+
 var cube;
 var gap = 4;
 var cubeGeometry;
@@ -9,18 +16,13 @@ var cubeMaterial;
 var cubeNumber;
 var cubes = [];
 var physicsCubes = [];
+var physicsCubesShapes = [];
 var cubesPosition = [[0, 0], [0, gap], [gap, gap], [gap, 0], [gap, -1 * gap], [0, -1 * gap], [-1 * gap, -1 * gap], [-1 * gap, 0], [-1 * gap, gap], [-1 * gap, 2 * gap], [0, 2 * gap], [gap, 2 * gap], [2 * gap, 2 * gap], [2 * gap, gap], [2 * gap, 0], [2 * gap, -1 * gap], [2 * gap, -2 * gap], [gap, -2 * gap], [0, -2 * gap], [-1 * gap, -2 * gap], [-2 * gap, -2 * gap], [-2 * gap, -1 * gap], [-2 * gap, 0], [-2 * gap, gap], [-2 * gap, 2 * gap]];
 var activeCube = new THREE.Mesh(cubeGeometry, cubeMaterial);
 var activePhysicsCube = null;
 const mousePosition = new THREE.Vector2();
 const rayCaster = new THREE.Raycaster();
 let camera, scene, renderer, boxTexture, clock, orbit;
-// var movement = {
-//     moveLeft: false,
-//     moveRight: false,
-//     moveForward: false,
-//     moveBack: false
-// }
 var moveLeft = false;
 var moveRight = false;
 var moveForward = false;
@@ -60,6 +62,7 @@ function initRenderWorld() {
     clock = new THREE.Clock();
 
     scene = new THREE.Scene();
+    scene.fog = new THREE.Fog( 0x777777, 0.015, 100)
     scene.background = new THREE.Color(0x777777);
     camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
 
@@ -75,7 +78,7 @@ function initRenderWorld() {
 
     const group = new THREE.Group();
 
-    const planeGeometry = new THREE.PlaneGeometry(100, 100);
+    const planeGeometry = new THREE.PlaneGeometry(1000, 1000);
     const planeMaterial = new THREE.MeshStandardMaterial({
         side: THREE.DoubleSide
     });
@@ -84,7 +87,7 @@ function initRenderWorld() {
     plane.receiveShadow = true;
     group.add(plane);
 
-    const gridHelper = new THREE.GridHelper(100, 50);
+    const gridHelper = new THREE.GridHelper(1000, 500);
     group.add(gridHelper);
 
     const axesHelper = new THREE.AxesHelper(3);
@@ -137,6 +140,7 @@ function initPhysicsWorld() {
         shape: new CANNON.Plane(),
         material: groundBodyMaterial
     });
+
     groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
     physicsWorld.addBody(groundBody);
 }
@@ -162,6 +166,7 @@ function addCube() {
     physicsWorld.addBody(boxBody);
 
     physicsCubes.push(boxBody);
+    physicsCubesShapes.push(boxShape);
 
     cubeGeometry = new THREE.BoxGeometry(dimension, dimension, dimension);
     cubeMaterial = new THREE.MeshStandardMaterial({
@@ -170,11 +175,6 @@ function addCube() {
     });
 
     cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-    // var xPosition = (6 * Math.ceil((cubes.length / 4))) * (cubes.length % 2) * Math.pow(-1, Math.ceil(cubes.length / 2));
-    // var yPosition = (6 * Math.ceil((cubes.length / 4))) * ((cubes.length % 2) - 1) * Math.pow(-1, Math.ceil(cubes.length / 2));
-    // var xPosition = cubesPosition[cubes.length][0];
-    // var zPosition = cubesPosition[cubes.length][1];
-    // cube.position.set(xPosition, cubeSize / 2, zPosition);
     cube.castShadow = true;
     scene.add(cube);
     cubes.push(cube);
@@ -184,12 +184,10 @@ function addCube() {
         groundBodyMaterial,
         boxBodyMaterial,
         { friction: 0.01 },
-        { restitution : 0 },
-        { contactEquationRelaxation: 1000 },
-        { frictionEquationStiffness: 1 }
+        { restitution : 10},
     );
-    physicsWorld.addContactMaterial(groundBoxContactMaterial);
 
+    physicsWorld.addContactMaterial(groundBoxContactMaterial);
 }
 
 function activateCube(cube) {
@@ -208,9 +206,12 @@ function activateCube(cube) {
 
 function controlScaleCube() {
     activeCube.scale.set(xSize.value, ySize.value, zSize.value);
-    boxShape.halfExtents.set(xSize.value / 2, ySize.value / 2, zSize.vule / 2);
-    boxShape.updateConvexPolyhedronRepresentation();
-    // activePhysicsCube.addShape(new CANNON.Box(new CANNON.Vec3(xSize.value / 2, ySize.value / 2, zSize.value / 2)));
+    var oldBoxShape = physicsCubesShapes[physicsCubes.indexOf(activePhysicsCube)];
+    activePhysicsCube.removeShape(oldBoxShape);
+    const newHalfExtents = new CANNON.Vec3(dimension / 2 * xSize.value, dimension / 2 * ySize.value, dimension / 2 * zSize.value);
+    var newBoxShape = new CANNON.Box(newHalfExtents);
+    activePhysicsCube.addShape(newBoxShape);
+    physicsCubesShapes[physicsCubes.indexOf(activePhysicsCube)] = newBoxShape;
 }
 
 function controlLookCube() {
@@ -318,7 +319,6 @@ function stopCube(e) {
 };
 
 function animate() {
-    // let deltaTime = clock.getDelta();
     physicsWorld.fixedStep();
     requestAnimationFrame(animate);
 
@@ -367,9 +367,7 @@ function animate() {
             activePhysicsCube.angularVelocity.set(0, 0, 0);
         }
 
-        console.log(activePhysicsCube.velocity.y)
-
-        if (activePhysicsCube.velocity.y <= 0.1 && jump) {
+        if (activePhysicsCube.velocity.y <= 0.005 && activePhysicsCube.velocity.y >= -0.005 && jump) {
             activePhysicsCube.applyImpulse(new CANNON.Vec3(0, 50, 0));
         }
     }
