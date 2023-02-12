@@ -7,7 +7,8 @@ var cubeSize = 2;
 var gap = 4;
 var cubeGeometry;
 var cubeMaterial;
-var cubes = new Array();
+var cubes = [];
+var physicsCubes = [];
 var cubesPosition = [[0, 0], [0, gap], [gap, gap], [gap, 0], [gap, -1 * gap], [0, -1 * gap], [-1 * gap, -1 * gap], [-1 * gap, 0], [-1 * gap, gap], [-1 * gap, 2 * gap], [0, 2 * gap], [gap, 2 * gap], [2 * gap, 2 * gap], [2 * gap, gap], [2 * gap, 0], [2 * gap, -1 * gap], [2 * gap, -2 * gap], [gap, -2 * gap], [0, -2 * gap], [-1 * gap, -2 * gap], [-2 * gap, -2 * gap], [-2 * gap, -1 * gap], [-2 * gap, 0], [-2 * gap, gap], [-2 * gap, 2 * gap]];
 var activeCube = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), new THREE.MeshStandardMaterial());
 const mousePosition = new THREE.Vector2();
@@ -67,8 +68,6 @@ function initRenderWorld() {
     orbit.enableDamping = true;
     orbit.dampingFactor = 0.1;
 
-    addCube();
-
     const group = new THREE.Group();
 
     const planeGeometry = new THREE.PlaneGeometry(100, 100);
@@ -108,15 +107,19 @@ function initRenderWorld() {
 
     scene.add(group);
 
-    const testBoxGeometry = new THREE.BoxGeometry(dimension, dimension, dimension)
+    // const testBoxGeometry = new THREE.BoxGeometry(dimension, dimension, dimension)
 
-    const testBoxMaterial = new THREE.MeshStandardMaterial({
-        transparent: true,
-        map: boxTexture
-    });
-    testCube = new THREE.Mesh(testBoxGeometry, testBoxMaterial);
-    testCube.castShadow = true;
-    scene.add(testCube);
+    // const testBoxMaterial = new THREE.MeshStandardMaterial({
+    //     transparent: true,
+    //     map: boxTexture
+    // });
+    // testCube = new THREE.Mesh(testBoxGeometry, testBoxMaterial);
+    // testCube.castShadow = true;
+    // scene.add(testCube);
+
+    addCube();
+
+
     animate();
 
 }
@@ -138,9 +141,16 @@ function initPhysicsWorld() {
         type: CANNON.Body.STATIC,
         shape: new CANNON.Plane(),
     });
-
     groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
     physicsWorld.addBody(groundBody);
+
+}
+
+function addCube() {
+    if (cubes.length >= 25) {
+        addCubeError.innerHTML = "Can not add any more cubes";
+        return;
+    }
 
     dimension = 2;
     const halfExtents = new CANNON.Vec3(dimension / 2, dimension / 2, dimension / 2);
@@ -149,32 +159,25 @@ function initPhysicsWorld() {
         mass: 5,
         shape: boxShape
     });
-    boxBody.position.set(0, 7, 0);
+    var xPosition = cubesPosition[cubes.length][0];
+    var zPosition = cubesPosition[cubes.length][1];
+    boxBody.position.set(xPosition, 5, zPosition);
     physicsWorld.addBody(boxBody);
 
-    // cannonDebugger = new CANNONDEBUGGER(scene, physicsWorld, {
-    //     color: 0xFF0000
-    // });
-}
+    physicsCubes.push(boxBody);
 
-
-function addCube() {
-    if (cubes.length >= 25) {
-        addCubeError.innerHTML = "Can not add any more cubes";
-        return;
-    }
-
-    cubeGeometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+    cubeGeometry = new THREE.BoxGeometry(dimension, dimension, dimension);
     cubeMaterial = new THREE.MeshStandardMaterial({
         transparent: true,
         map: boxTexture
     });
+
     cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
     // var xPosition = (6 * Math.ceil((cubes.length / 4))) * (cubes.length % 2) * Math.pow(-1, Math.ceil(cubes.length / 2));
     // var yPosition = (6 * Math.ceil((cubes.length / 4))) * ((cubes.length % 2) - 1) * Math.pow(-1, Math.ceil(cubes.length / 2));
-    var xPosition = cubesPosition[cubes.length][0];
-    var zPosition = cubesPosition[cubes.length][1];
-    cube.position.set(xPosition, cubeSize / 2, zPosition);
+    // var xPosition = cubesPosition[cubes.length][0];
+    // var zPosition = cubesPosition[cubes.length][1];
+    // cube.position.set(xPosition, cubeSize / 2, zPosition);
     cube.castShadow = true;
     scene.add(cube);
     cubes.push(cube);
@@ -191,7 +194,7 @@ function activateCube(cube) {
     texture.checked = cube.material.map == boxTexture ? true : false;
     color.value = '#' + cube.material.color.getHexString();
     metalness.value = cube.material.metalness;
-    autoRotation.checked = false; // måste fixa individuell speed först
+    autoRotation.checked = false; // måste fixa individuell rotation först
     speed.value = 0.01; // måste fixa individuell speed först
     wireframe.checked = cube.material.wireframe;
 }
@@ -250,11 +253,11 @@ function hoverClick(e) {
         return;
     }
 
-    for (var i = 0; i < cubes.length; i++) {
+    for (var i = 0; i < physicsCubes.length; i++) {
         if (intersect.length > 0 && cubes[i].id == intersect[0].object.id) {
             cubes.forEach(cube => cube.material.opacity = 1);
             intersect[0].object.material.opacity = 0.70;
-            activeCube = intersect[0].object;
+            activeCube = physicsCubes[i];
             activateCube(activeCube);
             controls.style.visibility = 'visible';
         }
@@ -338,10 +341,10 @@ function animate() {
     }
 
     orbit.update();
-    // cannonDebugger.update();
-    testCube.position.copy(boxBody.position);
-    testCube.quaternion.copy(boxBody.quaternion);
-
+        for (var i = 0; i < cubes.length; i++) {
+            cubes[i].position.copy(physicsCubes[i].position);
+            cubes[i].quaternion.copy(physicsCubes[i].quaternion);
+        }
 
     renderer.render(scene, camera);
 };
