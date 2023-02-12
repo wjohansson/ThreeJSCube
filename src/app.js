@@ -8,6 +8,8 @@ import * as CANNON from '../node_modules/cannon-es/dist/cannon-es.js';
 // Inte ens kollat på möjlighet att fixa omskalning genom visuella pilar istället för html inputs
 // Hopp funktionen är inte 100% pålitlig, kan råka bli double jump om man har "otur"
 // Kuber "åker in" i varandra lite vid collision, speciellt märkbart vid högre hastigheter på kuben
+// Konstiga reaktioner då man åker in i varandra. Kuberna skjuts iväg från varandra. Gissar att det har att göra med att kuberna 
+//      intersectar med varandra och tvingas att åka ut ur varandra då man slutar styra via WASD
 
 var cube;
 var gap = 4;
@@ -184,7 +186,7 @@ function addCube() {
         groundBodyMaterial,
         boxBodyMaterial,
         { friction: 0.01 },
-        { restitution : 10},
+        { restitution : 0},
     );
 
     physicsWorld.addContactMaterial(groundBoxContactMaterial);
